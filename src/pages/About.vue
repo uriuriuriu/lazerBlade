@@ -1,17 +1,19 @@
 <template lang="pug">
-  div
-    h1 about page
-    Hello
-    .user(v-if="user")
-      img(:src="user.avatar_url")
-      p hello, i am {{ user.name }}
-      p
-        | github:
-        a(:href="user.html_url") {{ user.login }}
+  .outer
+    .inner
+      h1 about
+      .user(v-if="user")
+        a(:href="user.html_url")
+          img.img(:src="user.avatar_url")
+        p
+          | twitter:
+          a(href="https://twitter.com/uriuriuriu") @uriuriuriu
+        p
+          | github:
+          a(:href="user.html_url") {{ user.login }}
 </template>
 
 <script>
-import Hello from 'src/components/Hello'
 import { mapActions } from 'vuex'
 import * as apis from 'src/apis/index'
 
@@ -27,7 +29,6 @@ export default {
     this.getUser()
   },
   components: {
-    Hello
   },
   methods: {
     async getUser () {
@@ -46,6 +47,14 @@ export default {
 </script>
 
 <style lang="sass" scoped>
-img
+.outer
+  display: table
+  width: 100%
+  height: calc(80vh - 61px)
+.inner
+  display: table-cell
+  vertical-align: middle
+.img
   width: 150px
+  border-radius: 6px
 </style>
