@@ -9,7 +9,7 @@ import postFlag from 'src/shaders/post_flag.glsl'
 import postVert from 'src/shaders/post_vert.glsl'
 // import img from 'src/shaders/textures/lenna.jpg'
 import img from 'src/assets/lenna.jpg'
-import { glsl } from 'src/shaders/index'
+import { GLSL, ProgramParameter } from 'src/shaders/index'
 import { mapGetters } from 'vuex'
 
 const PARAMS_CONFIG1 = {
@@ -41,6 +41,7 @@ export default {
   data () {
     return {
       gl: null,
+      glsl: null,
       cvs: null,
       ext: null,
       scenePrg: null,
@@ -65,14 +66,17 @@ export default {
     this.cvs = this.$refs.canvas
     // this.gl = this.cvs.getContext('experimental-webgl')
     this.gl = this.cvs.getContext('webgl')
-    if (this.gl === null) return
-    this.ext = glsl.getWebGLExtensions(this.gl)
+    if (!this.gl) return
+    this.glsl = new GLSL(this.gl)
+    this.ext = this.glsl.getWebGLExtensions()
     // window.addEventListener('mousemove', this.mouseMove, false)
     // console.log(this.cvs, this.gl)
-    this.textures = await glsl.createTextures(this.gl, this.texSrcs)
-    glsl.setTextures(this.gl, this.textures)
-    this.scenePrg = glsl.buildProgram(this.gl, testVert, testFlag)
-    this.scenePrg2 = glsl.buildProgram(this.gl, postVert, postFlag)
+    this.textures = await this.glsl.createTextures(this.texSrcs)
+    this.glsl.setTextures(this.textures)
+    let prg1 = this.glsl.buildProgram(testVert, testFlag)
+    let prg2 = this.glsl.buildProgram(postVert, postFlag)
+    this.scenePrg = new ProgramParameter(prg1, this.glsl)
+    this.scenePrg2 = new ProgramParameter(prg2, this.glsl)
     if (!this.scenePrg && !this.scenePrg2) return
     this.init()
   },
@@ -80,8 +84,8 @@ export default {
     // 頂点の情報などあらゆる初期化処理を行い描画開始の準備をする
     init (texture) {
       // プログラムオブジェクトから attribute location を取得しストライドを設定する
-      this.scenePrg.setParams(this.gl, PARAMS_CONFIG1)
-      this.scenePrg2.setParams(this.gl, PARAMS_CONFIG2)
+      this.scenePrg.setParams(PARAMS_CONFIG1)
+      this.scenePrg2.setParams(PARAMS_CONFIG2)
       // 頂点座標を定義する
       this.position = [
         -1.0, 1.0, 0.0,
@@ -97,24 +101,24 @@ export default {
       ]
       // 頂点座標の配列から VBO（Vertex Buffer Object）を生成する
       this.VBO = [
-        glsl.createVbo(this.gl, this.position),
-        glsl.createVbo(this.gl, this.texCoord)
+        this.glsl.createVbo(this.position),
+        this.glsl.createVbo(this.texCoord)
       ]
       this.VBO2 = [
-        glsl.createVbo(this.gl, this.position)
+        this.glsl.createVbo(this.position)
       ]
-      this.IBO = glsl.createIbo(this.gl, this.index)
+      this.IBO = this.glsl.createIbo(this.index)
       // フレームバッファの生成
-      this.fBuffer = glsl.createFramebuffer(this.gl, this.canvasWidth, this.canvasHeight)
+      this.fBuffer = this.glsl.createFramebuffer(this.canvasWidth, this.canvasHeight)
       this.gl.bindTexture(this.gl.TEXTURE_2D, this.fBuffer.texture)
-      // this.scenePrg.setAtt(this.gl, this.VBO, this.IBO)
+      // this.scenePrg.setAtt(this.VBO, this.IBO)
 
       // this.gl.clearColor(0.7, 0.7, 1.0, 1.0)
       this.gl.clearColor(0.804950, 0.851518, 0.907907, 1.0)
       this.gl.clearDepth(1.0) // クリアする深度
       this.gl.enable(this.gl.DEPTH_TEST) // 深度テストを有効化
-      // this.scenePrg.setUniLocation(this.gl, 'colorTexture', 0)
-      // this.scenePrg.setUniLocation(this.gl, 'heightTexture', 1)
+      // this.scenePrg.setUniLocation('colorTexture', 0)
+      // this.scenePrg.setUniLocation('heightTexture', 1)
       this.startTime = Date.now()
       this.nowTime = 0
       this.run = true // ループフラグ
@@ -131,8 +135,8 @@ export default {
 
       // 1
       this.gl.useProgram(this.scenePrg.program)
-      this.scenePrg.setAtt(this.gl, this.VBO, this.IBO)
-      this.scenePrg.setUniLocation(this.gl, 'mouse', this.mouse)
+      this.scenePrg.setAtt(this.VBO, this.IBO)
+      this.scenePrg.setUniLocation('mouse', this.mouse)
       this.gl.drawElements(this.gl.TRIANGLES, this.index.length, this.gl.UNSIGNED_SHORT, 0)
 
       // this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
@@ -140,10 +144,10 @@ export default {
 
       // 2
       this.gl.useProgram(this.scenePrg2.program)
-      this.scenePrg2.setAtt(this.gl, this.VBO2, this.IBO)
-      this.scenePrg2.setUniLocation(this.gl, 'texture', 0)
-      this.scenePrg2.setUniLocation(this.gl, 'time', this.nowTime)
-      this.scenePrg2.setUniLocation(this.gl, 'resolution', [this.canvasWidth, this.canvasHeight])
+      this.scenePrg2.setAtt(this.VBO2, this.IBO)
+      this.scenePrg2.setUniLocation('texture', 0)
+      this.scenePrg2.setUniLocation('time', this.nowTime)
+      this.scenePrg2.setUniLocation('resolution', [this.canvasWidth, this.canvasHeight])
       this.gl.drawElements(this.gl.TRIANGLES, this.index.length, this.gl.UNSIGNED_SHORT, 0)
 
       // show
