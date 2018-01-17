@@ -6,4 +6,4 @@ test/unit/coverage
 
 # RubyMine project file
 .idea/
-
+yarn-error.log
