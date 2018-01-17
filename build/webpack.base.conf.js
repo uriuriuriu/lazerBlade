@@ -79,6 +79,11 @@ module.exports = {
         }
       },
       {
+        test: /\.(png|jpe?g|gif|svg)(\?.*)?$/,
+        loader: 'file-loader',
+        include: [resolve('src/shaders/textures')]
+      },
+      {
         test: /\.(woff2?|eot|ttf|otf)(\?.*)?$/,
         loader: 'url-loader',
         query: {

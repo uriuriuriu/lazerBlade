@@ -1,3 +1,20 @@
+import _ from 'lodash'
+
+const _createProgram = function (gl, vs, fs) {
+  if (vs == null || fs == null) { return }
+  let program = gl.createProgram()
+  gl.attachShader(program, vs)
+  gl.attachShader(program, fs)
+  gl.linkProgram(program)
+  if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    gl.useProgram(program)
+    return program
+  } else {
+    alert(gl.getProgramInfoLog(program))
+    return null
+  }
+}
+
 const glsl = {
   createShader (gl, source, type) {
     let shader = gl.createShader(type)
@@ -10,19 +27,55 @@ const glsl = {
       return null
     }
   },
-  createProgram (gl, vs, fs) {
-    if (vs == null || fs == null) { return }
-    let program = gl.createProgram()
-    gl.attachShader(program, vs)
-    gl.attachShader(program, fs)
-    gl.linkProgram(program)
-    if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      gl.useProgram(program)
-      return program
-    } else {
-      alert(gl.getProgramInfoLog(program))
-      return null
+  async createTextures (gl, datas) {
+    let result = []
+    for (let data of datas) {
+      result.push(await this.createTexture(gl, data))
     }
+    return result
+  },
+  getImg (src) {
+    return new Promise((resolve, reject) => {
+      let image = new Image()
+      image.addEventListener('load', (e) => resolve(image))
+      image.src = src
+    })
+  },
+  async createTexture (gl, data) {
+    let img = await this.getImg(data)
+    let tex = gl.createTexture()
+    gl.bindTexture(gl.TEXTURE_2D, tex)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img)
+    gl.generateMipmap(gl.TEXTURE_2D)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+    gl.bindTexture(gl.TEXTURE_2D, null)
+    return tex
+    // await img.addEventListener('load', () => {
+    //   console.log('img', img)
+    //   let tex = gl.createTexture()
+    //   gl.bindTexture(gl.TEXTURE_2D, tex)
+    //   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img)
+    //   gl.generateMipmap(gl.TEXTURE_2D)
+    //   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    //   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    //   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
+    //   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
+    //   gl.bindTexture(gl.TEXTURE_2D, null)
+    //   return tex
+    // }, false)
+    // img.src = data
+  },
+  buildProgram (gl, vertString, flagString) {
+    let srcFlag = glsl.getShader(flagString)
+    let srcVert = glsl.getShader(vertString)
+    let vs = glsl.createShader(gl, srcVert, gl.VERTEX_SHADER)
+    let fs = glsl.createShader(gl, srcFlag, gl.FRAGMENT_SHADER)
+    // console.log('pgm', vs, fs)
+    // シェーダオブジェクトをプログラムオブジェクトにアタッチ
+    return _createProgram(gl, vs, fs)
   },
   createVbo (gl, data) {
     let vbo = gl.createBuffer()
@@ -30,6 +83,13 @@ const glsl = {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW)
     gl.bindBuffer(gl.ARRAY_BUFFER, null)
     return vbo
+  },
+  createIbo (gl, data) {
+    let ibo = gl.createBuffer()
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo)
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Int16Array(data), gl.STATIC_DRAW)
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
+    return ibo
   },
   setAttribute (gl, vbo, attL, attS, ibo) {
     for (let i in vbo) {
@@ -53,35 +113,60 @@ const glsl = {
     // let decodedData = window.atob(src[1]) // 文字列のデコード
     let decodedData = decodeURIComponent(escape(window.atob(src[1]))) // 文字列のデコード
     return decodedData
+  },
+  setTextures (gl, textures) {
+    textures.forEach((val, index) => {
+      this.setTexture(gl, val, index)
+    })
+  },
+  setTexture (gl, texture, index) {
+    // gl.activeTexture(gl.TEXTURE0)
+    gl.activeTexture(gl[`TEXTURE${index}`])
+    gl.bindTexture(gl.TEXTURE_2D, texture)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
   }
 }
 
 export class ProgramParameter {
-  /**
-   * @constructor
-   * @param {WebGLProgram} program - プログラムオブジェクト
-   */
   constructor (program) {
-    /**
-     * @type {WebGLProgram} プログラムオブジェクト
-     */
     this.program = program
-    /**
-     * @type {Array} attribute location を格納する配列
-     */
     this.attLocation = []
-    /**
-     * @type {Array} attribute stride を格納する配列
-     */
     this.attStride = []
-    /**
-     * @type {Array} uniform location を格納する配列
-     */
     this.uniLocation = []
-    /**
-     * @type {Array} uniform 変数のタイプを格納する配列
-     */
     this.uniType = []
+    this.params = {
+      att: [
+        // {location: 'position', stride: 3},
+        // {location: 'texCoord', stride: 2}
+      ],
+      uni: [
+        // {location: 'mouse', type: 'uniform2fv'},
+        // {location: 'colorTexture', type: 'uniform1i'},
+        // {location: 'heightTexture', type: 'uniform1i'}
+      ]
+    }
+    this.uniIndex = {
+      // mouse: 0,
+      // colorTexture: 1,
+      // heightTexture: 2,
+    }
+  }
+  setParams (gl, params) {
+    this.params = _.cloneDeep(params)
+    params.att.forEach((at, index) => {
+      this.attLocation[index] = gl.getAttribLocation(this.program, at.location)
+      this.attStride[index] = at.stride
+    })
+    this.uniIndex = {}
+    params.uni.forEach((un, index) => {
+      this.uniIndex[un.location] = index
+      this.uniLocation[index] = gl.getUniformLocation(this.program, un.location)
+      this.uniType[index] = un.type
+    })
+  }
+  setUniLocation (gl, location, val) {
+    gl[this.uniType[this.uniIndex[location]]](this.uniLocation[this.uniIndex[location]], val)
   }
 }
 
