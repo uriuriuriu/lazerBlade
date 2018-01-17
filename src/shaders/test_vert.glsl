@@ -1,8 +1,8 @@
 // JavaScript から VBO 経由で送られてきた頂点座標
 attribute vec3 position;
-attribute vec4 color;
-uniform vec2 mouse;
-varying vec4 vColor;
+attribute vec2 texCoord;  // 頂点のテクスチャ座標
+// uniform vec2 mouse;
+varying vec2 vTexCoord; // フラグメントシェーダへ送るテクスチャ座標
 // 頂点シェーダプログラムのエントリポイントとなる関数（名前は必ず main とする）
 void main(){
     // マウスカーソルの値を反映してみる（その１） @@@
@@ -10,8 +10,8 @@ void main(){
 //    gl_Position = vec4(position + v, 1.0);
 
     // マウスカーソルの値を反映してみる（その２） @@@
-     float f = abs(mouse.x);
-     gl_Position = vec4(position * f, 1.0);
+//     float f = abs(mouse.x);
+//     gl_Position = vec4(position * f, 1.0);
 
     // マウスカーソルの値を反映してみる（その３） @@@
 //     float f = length(mouse);
@@ -20,5 +20,6 @@ void main(){
     // 頂点の大きさは頂点シェーダで設定する
     gl_PointSize = 8.0;
 
-    vColor = color;
+    vTexCoord = texCoord;
+    gl_Position = vec4(position, 1.0);
 }
