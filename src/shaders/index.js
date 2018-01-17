@@ -53,20 +53,26 @@ const glsl = {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
     gl.bindTexture(gl.TEXTURE_2D, null)
     return tex
-    // await img.addEventListener('load', () => {
-    //   console.log('img', img)
-    //   let tex = gl.createTexture()
-    //   gl.bindTexture(gl.TEXTURE_2D, tex)
-    //   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img)
-    //   gl.generateMipmap(gl.TEXTURE_2D)
-    //   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-    //   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-    //   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
-    //   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
-    //   gl.bindTexture(gl.TEXTURE_2D, null)
-    //   return tex
-    // }, false)
-    // img.src = data
+  },
+  createFramebuffer (gl, width, height) {
+    let frameBuffer = gl.createFramebuffer()
+    gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer)
+    let depthRenderBuffer = gl.createRenderbuffer()
+    gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer)
+    gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT16, width, height)
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, depthRenderBuffer)
+    let fTexture = gl.createTexture()
+    gl.bindTexture(gl.TEXTURE_2D, fTexture)
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fTexture, 0)
+    gl.bindTexture(gl.TEXTURE_2D, null)
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null)
+    return {framebuffer: frameBuffer, renderbuffer: depthRenderBuffer, texture: fTexture}
   },
   buildProgram (gl, vertString, flagString) {
     let srcFlag = glsl.getShader(flagString)
@@ -75,7 +81,10 @@ const glsl = {
     let fs = glsl.createShader(gl, srcFlag, gl.FRAGMENT_SHADER)
     // console.log('pgm', vs, fs)
     // シェーダオブジェクトをプログラムオブジェクトにアタッチ
-    return _createProgram(gl, vs, fs)
+    let prg = _createProgram(gl, vs, fs)
+    if (prg === null) return
+    // プログラムオブジェクトを管理しやすいようにクラスでラップする
+    return new ProgramParameter(prg)
   },
   createVbo (gl, data) {
     let vbo = gl.createBuffer()
@@ -167,6 +176,9 @@ export class ProgramParameter {
   }
   setUniLocation (gl, location, val) {
     gl[this.uniType[this.uniIndex[location]]](this.uniLocation[this.uniIndex[location]], val)
+  }
+  setAtt (gl, VBO, IBO) {
+    glsl.setAttribute(gl, VBO, this.attLocation, this.attStride, IBO)
   }
 }
 
