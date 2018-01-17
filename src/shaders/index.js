@@ -1,3 +1,20 @@
+import _ from 'lodash'
+
+const _createProgram = function (gl, vs, fs) {
+  if (vs == null || fs == null) { return }
+  let program = gl.createProgram()
+  gl.attachShader(program, vs)
+  gl.attachShader(program, fs)
+  gl.linkProgram(program)
+  if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    gl.useProgram(program)
+    return program
+  } else {
+    alert(gl.getProgramInfoLog(program))
+    return null
+  }
+}
+
 const glsl = {
   createShader (gl, source, type) {
     let shader = gl.createShader(type)
@@ -51,19 +68,14 @@ const glsl = {
     // }, false)
     // img.src = data
   },
-  createProgram (gl, vs, fs) {
-    if (vs == null || fs == null) { return }
-    let program = gl.createProgram()
-    gl.attachShader(program, vs)
-    gl.attachShader(program, fs)
-    gl.linkProgram(program)
-    if (gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      gl.useProgram(program)
-      return program
-    } else {
-      alert(gl.getProgramInfoLog(program))
-      return null
-    }
+  buildProgram (gl, vertString, flagString) {
+    let srcFlag = glsl.getShader(flagString)
+    let srcVert = glsl.getShader(vertString)
+    let vs = glsl.createShader(gl, srcVert, gl.VERTEX_SHADER)
+    let fs = glsl.createShader(gl, srcFlag, gl.FRAGMENT_SHADER)
+    // console.log('pgm', vs, fs)
+    // シェーダオブジェクトをプログラムオブジェクトにアタッチ
+    return _createProgram(gl, vs, fs)
   },
   createVbo (gl, data) {
     let vbo = gl.createBuffer()
@@ -104,7 +116,6 @@ const glsl = {
   },
   setTextures (gl, textures) {
     textures.forEach((val, index) => {
-      console.log(val)
       this.setTexture(gl, val, index)
     })
   },
@@ -118,31 +129,44 @@ const glsl = {
 }
 
 export class ProgramParameter {
-  /**
-   * @constructor
-   * @param {WebGLProgram} program - プログラムオブジェクト
-   */
   constructor (program) {
-    /**
-     * @type {WebGLProgram} プログラムオブジェクト
-     */
     this.program = program
-    /**
-     * @type {Array} attribute location を格納する配列
-     */
     this.attLocation = []
-    /**
-     * @type {Array} attribute stride を格納する配列
-     */
     this.attStride = []
-    /**
-     * @type {Array} uniform location を格納する配列
-     */
     this.uniLocation = []
-    /**
-     * @type {Array} uniform 変数のタイプを格納する配列
-     */
     this.uniType = []
+    this.params = {
+      att: [
+        // {location: 'position', stride: 3},
+        // {location: 'texCoord', stride: 2}
+      ],
+      uni: [
+        // {location: 'mouse', type: 'uniform2fv'},
+        // {location: 'colorTexture', type: 'uniform1i'},
+        // {location: 'heightTexture', type: 'uniform1i'}
+      ]
+    }
+    this.uniIndex = {
+      // mouse: 0,
+      // colorTexture: 1,
+      // heightTexture: 2,
+    }
+  }
+  setParams (gl, params) {
+    this.params = _.cloneDeep(params)
+    params.att.forEach((at, index) => {
+      this.attLocation[index] = gl.getAttribLocation(this.program, at.location)
+      this.attStride[index] = at.stride
+    })
+    this.uniIndex = {}
+    params.uni.forEach((un, index) => {
+      this.uniIndex[un.location] = index
+      this.uniLocation[index] = gl.getUniformLocation(this.program, un.location)
+      this.uniType[index] = un.type
+    })
+  }
+  setUniLocation (gl, location, val) {
+    gl[this.uniType[this.uniIndex[location]]](this.uniLocation[this.uniIndex[location]], val)
   }
 }
 
