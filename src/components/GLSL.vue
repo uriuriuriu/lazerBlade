@@ -139,16 +139,16 @@ export default {
       this.scenePrg.setUniLocation('mouse', this.mouse)
       this.gl.drawElements(this.gl.TRIANGLES, this.index.length, this.gl.UNSIGNED_SHORT, 0)
 
-      // this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
-      this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
-
-      // 2
-      this.gl.useProgram(this.scenePrg2.program)
-      this.scenePrg2.setAtt(this.VBO2, this.IBO)
-      this.scenePrg2.setUniLocation('texture', 0)
-      this.scenePrg2.setUniLocation('time', this.nowTime)
-      this.scenePrg2.setUniLocation('resolution', [this.canvasWidth, this.canvasHeight])
-      this.gl.drawElements(this.gl.TRIANGLES, this.index.length, this.gl.UNSIGNED_SHORT, 0)
+      // // this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
+      // this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
+      //
+      // // 2
+      // this.gl.useProgram(this.scenePrg2.program)
+      // this.scenePrg2.setAtt(this.VBO2, this.IBO)
+      // this.scenePrg2.setUniLocation('texture', 0)
+      // this.scenePrg2.setUniLocation('time', this.nowTime)
+      // this.scenePrg2.setUniLocation('resolution', [this.canvasWidth, this.canvasHeight])
+      // this.gl.drawElements(this.gl.TRIANGLES, this.index.length, this.gl.UNSIGNED_SHORT, 0)
 
       // show
       this.gl.flush()
