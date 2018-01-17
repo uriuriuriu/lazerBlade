@@ -27,7 +27,8 @@ export default {
       startTime: null,
       nowTime: null,
       VBO: null,
-      position: null
+      position: null,
+      color: null
     }
   },
   mounted () {
@@ -62,7 +63,9 @@ export default {
     init (texture) {
       // プログラムオブジェクトから attribute location を取得しストライドを設定する
       this.scenePrg.attLocation[0] = this.gl.getAttribLocation(this.scenePrg.program, 'position')
+      this.scenePrg.attLocation[1] = this.gl.getAttribLocation(this.scenePrg.program, 'color')
       this.scenePrg.attStride[0] = 3
+      this.scenePrg.attStride[1] = 4
       this.scenePrg.uniLocation[0] = this.gl.getUniformLocation(this.scenePrg.program, 'mouse')
       this.scenePrg.uniType[0] = 'uniform2fv'
       // 頂点座標を定義する
@@ -73,8 +76,19 @@ export default {
         1.0, -1.0, 0.0, // 4 つ目の頂点の X, Y, Z
         -1.0, -1.0, 0.0 // 5 つ目の頂点の X, Y, Z
       ]
+      // 頂点座標を定義する
+      this.color = [
+        1.0, 1.0, 1.0, 1.0, // 1つ目の頂点の R, G, B, A
+        1.0, 0.0, 0.0, 1.0, // 2つ目の頂点の R, G, B, A
+        0.0, 1.0, 0.0, 1.0, // 3つ目の頂点の R, G, B, A
+        0.0, 0.0, 1.0, 1.0, // 4つ目の頂点の R, G, B, A
+        0.5, 0.5, 0.5, 1.0 // 5つ目の頂点の R, G, B, A
+      ]
       // 頂点座標の配列から VBO（Vertex Buffer Object）を生成する
-      this.VBO = [glsl.createVbo(this.gl, this.position)]
+      this.VBO = [
+        glsl.createVbo(this.gl, this.position),
+        glsl.createVbo(this.gl, this.color)
+      ]
       // WebGL で canvas をクリアする色の設定
       this.gl.clearColor(0.804950, 0.851518, 0.907907, 1.0)
       // 未初期化の変数を初期化する
