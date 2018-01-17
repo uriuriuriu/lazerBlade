@@ -15,122 +15,131 @@ const _createProgram = function (gl, vs, fs) {
   }
 }
 
-const glsl = {
-  createShader (gl, source, type) {
-    let shader = gl.createShader(type)
-    gl.shaderSource(shader, source)
-    gl.compileShader(shader)
-    if (gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+export class GLSL {
+  constructor (gl) {
+    this.gl = gl
+  }
+  createShader (source, type) {
+    let shader = this.gl.createShader(type)
+    this.gl.shaderSource(shader, source)
+    this.gl.compileShader(shader)
+    if (this.gl.getShaderParameter(shader, this.gl.COMPILE_STATUS)) {
       return shader
     } else {
-      alert(gl.getShaderInfoLog(shader))
+      alert(this.gl.getShaderInfoLog(shader))
       return null
     }
-  },
-  async createTextures (gl, datas) {
+  }
+  async createTextures (datas) {
     let result = []
     for (let data of datas) {
-      result.push(await this.createTexture(gl, data))
+      result.push(await this.createTexture(data))
     }
     return result
-  },
+  }
   getImg (src) {
     return new Promise((resolve, reject) => {
       let image = new Image()
       image.addEventListener('load', (e) => resolve(image))
       image.src = src
     })
-  },
-  async createTexture (gl, data) {
+  }
+  async createTexture (data) {
     let img = await this.getImg(data)
-    let tex = gl.createTexture()
-    gl.bindTexture(gl.TEXTURE_2D, tex)
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img)
-    gl.generateMipmap(gl.TEXTURE_2D)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
-    gl.bindTexture(gl.TEXTURE_2D, null)
+    let tex = this.gl.createTexture()
+    this.gl.bindTexture(this.gl.TEXTURE_2D, tex)
+    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, img)
+    this.gl.generateMipmap(this.gl.TEXTURE_2D)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.REPEAT)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.REPEAT)
+    this.gl.bindTexture(this.gl.TEXTURE_2D, null)
     return tex
-    // await img.addEventListener('load', () => {
-    //   console.log('img', img)
-    //   let tex = gl.createTexture()
-    //   gl.bindTexture(gl.TEXTURE_2D, tex)
-    //   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img)
-    //   gl.generateMipmap(gl.TEXTURE_2D)
-    //   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR)
-    //   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR)
-    //   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT)
-    //   gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT)
-    //   gl.bindTexture(gl.TEXTURE_2D, null)
-    //   return tex
-    // }, false)
-    // img.src = data
-  },
-  buildProgram (gl, vertString, flagString) {
-    let srcFlag = glsl.getShader(flagString)
-    let srcVert = glsl.getShader(vertString)
-    let vs = glsl.createShader(gl, srcVert, gl.VERTEX_SHADER)
-    let fs = glsl.createShader(gl, srcFlag, gl.FRAGMENT_SHADER)
+  }
+  createFramebuffer (width, height) {
+    let frameBuffer = this.gl.createFramebuffer()
+    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, frameBuffer)
+    let depthRenderBuffer = this.gl.createRenderbuffer()
+    this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, depthRenderBuffer)
+    this.gl.renderbufferStorage(this.gl.RENDERBUFFER, this.gl.DEPTH_COMPONENT16, width, height)
+    this.gl.framebufferRenderbuffer(this.gl.FRAMEBUFFER, this.gl.DEPTH_ATTACHMENT, this.gl.RENDERBUFFER, depthRenderBuffer)
+    let fTexture = this.gl.createTexture()
+    this.gl.bindTexture(this.gl.TEXTURE_2D, fTexture)
+    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, width, height, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, null)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.LINEAR)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.LINEAR)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE)
+    this.gl.framebufferTexture2D(this.gl.FRAMEBUFFER, this.gl.COLOR_ATTACHMENT0, this.gl.TEXTURE_2D, fTexture, 0)
+    this.gl.bindTexture(this.gl.TEXTURE_2D, null)
+    this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, null)
+    this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
+    return {framebuffer: frameBuffer, renderbuffer: depthRenderBuffer, texture: fTexture}
+  }
+  buildProgram (vertString, flagString) {
+    let srcFlag = this.getShader(flagString)
+    let srcVert = this.getShader(vertString)
+    let vs = this.createShader(srcVert, this.gl.VERTEX_SHADER)
+    let fs = this.createShader(srcFlag, this.gl.FRAGMENT_SHADER)
     // console.log('pgm', vs, fs)
-    // シェーダオブジェクトをプログラムオブジェクトにアタッチ
-    return _createProgram(gl, vs, fs)
-  },
-  createVbo (gl, data) {
-    let vbo = gl.createBuffer()
-    gl.bindBuffer(gl.ARRAY_BUFFER, vbo)
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW)
-    gl.bindBuffer(gl.ARRAY_BUFFER, null)
+    return _createProgram(this.gl, vs, fs)
+  }
+  createVbo (data) {
+    let vbo = this.gl.createBuffer()
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vbo)
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(data), this.gl.STATIC_DRAW)
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null)
     return vbo
-  },
-  createIbo (gl, data) {
-    let ibo = gl.createBuffer()
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo)
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Int16Array(data), gl.STATIC_DRAW)
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null)
+  }
+  createIbo (data) {
+    let ibo = this.gl.createBuffer()
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, ibo)
+    this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Int16Array(data), this.gl.STATIC_DRAW)
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, null)
     return ibo
-  },
-  setAttribute (gl, vbo, attL, attS, ibo) {
+  }
+  setAttribute (vbo, attL, attS, ibo) {
     for (let i in vbo) {
-      gl.bindBuffer(gl.ARRAY_BUFFER, vbo[i])
-      gl.enableVertexAttribArray(attL[i])
-      gl.vertexAttribPointer(attL[i], attS[i], gl.FLOAT, false, 0, 0)
+      this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vbo[i])
+      this.gl.enableVertexAttribArray(attL[i])
+      this.gl.vertexAttribPointer(attL[i], attS[i], this.gl.FLOAT, false, 0, 0)
     }
-    if (ibo != null) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo)
-    }
-  },
-  getWebGLExtensions (gl) {
+    if (ibo === null) return
+    this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, ibo)
+  }
+  getWebGLExtensions () {
     return {
-      elementIndexUint: gl.getExtension('OES_element_index_uint'),
-      textureFloat: gl.getExtension('OES_texture_float'),
-      textureHalfFloat: gl.getExtension('OES_texture_half_float')
+      elementIndexUint: this.gl.getExtension('OES_element_index_uint'),
+      textureFloat: this.gl.getExtension('OES_texture_float'),
+      textureHalfFloat: this.gl.getExtension('OES_texture_half_float')
     }
-  },
+  }
   getShader (data) {
     let src = data.split(',')
     // let decodedData = window.atob(src[1]) // 文字列のデコード
     let decodedData = decodeURIComponent(escape(window.atob(src[1]))) // 文字列のデコード
     return decodedData
-  },
-  setTextures (gl, textures) {
+  }
+  setTextures (textures) {
     textures.forEach((val, index) => {
-      this.setTexture(gl, val, index)
+      this.setTexture(val, index)
     })
-  },
-  setTexture (gl, texture, index) {
-    // gl.activeTexture(gl.TEXTURE0)
-    gl.activeTexture(gl[`TEXTURE${index}`])
-    gl.bindTexture(gl.TEXTURE_2D, texture)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE)
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE)
+  }
+  setTexture (texture, index) {
+    // this.gl.activeTexture(this.gl.TEXTURE0)
+    this.gl.activeTexture(this.gl[`TEXTURE${index}`])
+    this.gl.bindTexture(this.gl.TEXTURE_2D, texture)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_S, this.gl.CLAMP_TO_EDGE)
+    this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_WRAP_T, this.gl.CLAMP_TO_EDGE)
   }
 }
 
 export class ProgramParameter {
-  constructor (program) {
+  constructor (program, glsl) {
     this.program = program
+    this.gl = glsl.gl
+    this.glsl = glsl
     this.attLocation = []
     this.attStride = []
     this.uniLocation = []
@@ -152,21 +161,24 @@ export class ProgramParameter {
       // heightTexture: 2,
     }
   }
-  setParams (gl, params) {
+  setParams (params) {
     this.params = _.cloneDeep(params)
     params.att.forEach((at, index) => {
-      this.attLocation[index] = gl.getAttribLocation(this.program, at.location)
+      this.attLocation[index] = this.gl.getAttribLocation(this.program, at.location)
       this.attStride[index] = at.stride
     })
     this.uniIndex = {}
     params.uni.forEach((un, index) => {
       this.uniIndex[un.location] = index
-      this.uniLocation[index] = gl.getUniformLocation(this.program, un.location)
+      this.uniLocation[index] = this.gl.getUniformLocation(this.program, un.location)
       this.uniType[index] = un.type
     })
   }
-  setUniLocation (gl, location, val) {
-    gl[this.uniType[this.uniIndex[location]]](this.uniLocation[this.uniIndex[location]], val)
+  setUniLocation (location, val) {
+    this.gl[this.uniType[this.uniIndex[location]]](this.uniLocation[this.uniIndex[location]], val)
+  }
+  setAtt (VBO, IBO) {
+    this.glsl.setAttribute(VBO, this.attLocation, this.attStride, IBO)
   }
 }
 
@@ -175,4 +187,4 @@ export class ProgramParameter {
 //     Vue.prototype.glsl = glsl
 //   }
 // }
-export { glsl }
+// export { GLSL }
