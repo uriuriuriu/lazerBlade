@@ -7,9 +7,7 @@ import glslVert11 from 'src/shaders/glsl/3/vert11.glsl'
 import glslFrag12 from 'src/shaders/glsl/3/frag12.glsl'
 import glslVert21 from 'src/shaders/glsl/3/vert21.glsl'
 import glslFrag22 from 'src/shaders/glsl/3/frag22.glsl'
-import { MatIV, QtnIV } from 'src/shaders/minMatrix'
-// import { MatIV, QtnIV, torus, sphere, cube, hsva } from 'src/plugins/minMatrix'
-import { GLSL, ProgramParameter, InteractionCamera } from 'src/shaders/index'
+import { GLSL, ProgramParameter } from 'src/shaders/index'
 
 const PARAMS_CONFIG1 = {
   att: [
@@ -17,7 +15,10 @@ const PARAMS_CONFIG1 = {
     {location: 'color', stride: 4}
   ],
   uni: [
-    {location: 'mvpMatrix', type: 'uniformMatrix4fv'}
+    {location: 'texture', type: 'uniform1i'},
+    {location: 'mouse', type: 'uniform2fv'},
+    {location: 'time', type: 'uniform1f'},
+    {location: 'resolution', type: 'uniform2fv'}
   ]
 }
 const PARAMS_CONFIG2 = {
@@ -51,21 +52,13 @@ export default {
       VBO: null,
       VBO2: null,
       IBO: null,
-      position: null,
-      color: null,
+      position1: null,
+      position2: null,
+      color1: null,
       // texSrcs: [img, img],
       // textures: [],
       index: [0, 2, 1, 1, 2, 3],
-      fBuffer: null,
-      mat: null, // 行列処理系クラス
-      qtn: null, // クォータニオン処理系クラス
-      camera: null,
-      mMatrix: null,
-      vMatrix: null,
-      pMatrix: null,
-      vpMatrix: null,
-      mvpMatrix: null,
-      qtnMatrix: null
+      fBuffer: null
     }
   },
   async mounted () {
@@ -74,10 +67,6 @@ export default {
     if (!this.glsl.gl) return
     this.gl = this.glsl.gl
     this.ext = this.glsl.getWebGLExtensions()
-    this.mat = new MatIV()
-    this.qtn = new QtnIV()
-    this.camera = new InteractionCamera(this.qtn)
-    this.camera.update()
     let prg1 = this.glsl.buildProgram(glslVert11, glslFrag12)
     let prg2 = this.glsl.buildProgram(glslVert21, glslFrag22)
     this.scenePrg1 = new ProgramParameter(prg1, this.glsl)
@@ -91,33 +80,26 @@ export default {
       this.refreshCanvas()
       this.scenePrg1.setParams(PARAMS_CONFIG1)
       this.scenePrg2.setParams(PARAMS_CONFIG2)
-      this.position = [
+      this.position1 = [
+        0.0, 0.0, 0.0
+      ]
+      this.position2 = [
         -1.0, 1.0, 0.0,
         1.0, 1.0, 0.0,
         -1.0, -1.0, 0.0,
         1.0, -1.0, 0.0
       ]
-      this.color = [
-        1.0, 0.0, 0.0, 1.0,
-        0.0, 1.0, 0.0, 1.0,
-        0.0, 0.0, 1.0, 1.0,
-        1.0, 1.0, 1.0, 1.0
+      this.color1 = [
+        0.0, 0.0, 0.0, 1.0
       ]
       // 頂点座標の配列から VBO（Vertex Buffer Object）を生成する
-      this.VBO = this.glsl.createVbos([this.position, this.color])
-      this.VBO2 = this.glsl.createVbos([this.position])
+      this.VBO = this.glsl.createVbos([this.position1, this.color1])
+      this.VBO2 = this.glsl.createVbos([this.position2])
       this.IBO = this.glsl.createIbo(this.index)
       this.fBuffer = this.glsl.createFramebuffer(this.canvasWidth, this.canvasHeight)
       this.gl.bindTexture(this.gl.TEXTURE_2D, this.fBuffer.texture)
       // this.scenePrg1.setAtt(this.VBO, this.IBO)
 
-      // 行列関連変数の宣言と初期化
-      this.mMatrix = this.mat.identity(this.mat.create())
-      this.vMatrix = this.mat.identity(this.mat.create())
-      this.pMatrix = this.mat.identity(this.mat.create())
-      this.vpMatrix = this.mat.identity(this.mat.create())
-      this.mvpMatrix = this.mat.identity(this.mat.create())
-      this.qtnMatrix = this.mat.identity(this.mat.create())
       // this.gl.clearColor(0.7, 0.7, 1.0, 1.0)
       this.gl.clearColor(0.804950, 0.851518, 0.907907, 1.0)
       this.gl.clearDepth(1.0) // クリアする深度
@@ -137,30 +119,15 @@ export default {
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.fBuffer.framebuffer)
       this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
 
-      // cam
-      let cameraPosition = [0.0, 0.0, 3.0]
-      let centerPoint = [0.0, 0.0, 0.0]
-      let cameraUpDirection = [0.0, 1.0, 0.0]
-      let fovy = 60 * this.camera.scale
-      let aspect = this.canvasWidth / this.canvasHeight
-      let near = 0.1
-      let far = 10.0
-      this.mat.lookAt(cameraPosition, centerPoint, cameraUpDirection, this.vMatrix)
-      this.mat.perspective(fovy, aspect, near, far, this.pMatrix)
-      this.mat.multiply(this.pMatrix, this.vMatrix, this.vpMatrix)
-      this.camera.update()
-      this.mat.identity(this.qtnMatrix)
-      this.qtn.toMatIV(this.camera.qtn, this.qtnMatrix)
-      this.mat.multiply(this.vpMatrix, this.qtnMatrix, this.vpMatrix)
-
       // 1
       this.gl.useProgram(this.scenePrg1.program)
       this.scenePrg1.setAttribute(this.VBO, this.IBO)
-      this.mat.identity(this.mMatrix)
-      this.mat.rotate(this.mMatrix, this.nowTime * 0.1, [0.0, 1.0, 0.0], this.mMatrix)
-      this.mat.multiply(this.vpMatrix, this.mMatrix, this.mvpMatrix)
-      this.scenePrg1.setUniLocation('mvpMatrix', false, this.mvpMatrix)
-      this.gl.drawElements(this.gl.TRIANGLES, this.index.length, this.gl.UNSIGNED_SHORT, 0)
+      this.scenePrg1.setUniLocation('texture', 0)
+      this.scenePrg1.setUniLocation('time', this.nowTime)
+      this.scenePrg1.setUniLocation('mouse', this.mouse)
+      this.scenePrg1.setUniLocation('resolution', [this.canvasWidth, this.canvasHeight])
+      // this.gl.drawElements(this.gl.TRIANGLES, this.index.length, this.gl.UNSIGNED_SHORT, 0)
+      this.gl.drawArrays(this.gl.POINTS, 0, this.position1.length / 3)
 
       // save & clear
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
