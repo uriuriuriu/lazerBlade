@@ -7,6 +7,7 @@ import glslVert11 from 'src/shaders/glsl/3/vert11.glsl'
 import glslFrag12 from 'src/shaders/glsl/3/frag12.glsl'
 import glslVert21 from 'src/shaders/glsl/3/vert21.glsl'
 import glslFrag22 from 'src/shaders/glsl/3/frag22.glsl'
+// import img from 'src/assets/lenna.jpg'
 import { GLSL, ProgramParameter } from 'src/shaders/index'
 
 const PARAMS_CONFIG1 = {
@@ -15,6 +16,7 @@ const PARAMS_CONFIG1 = {
     {location: 'color', stride: 4}
   ],
   uni: [
+    {location: 'backbuffer', type: 'uniform1i'},
     {location: 'texture', type: 'uniform1i'},
     {location: 'mouse', type: 'uniform2fv'},
     {location: 'time', type: 'uniform1f'},
@@ -26,7 +28,9 @@ const PARAMS_CONFIG2 = {
     {location: 'position', stride: 3}
   ],
   uni: [
+    {location: 'backbuffer', type: 'uniform1i'},
     {location: 'texture', type: 'uniform1i'},
+    {location: 'mouse', type: 'uniform2fv'},
     {location: 'time', type: 'uniform1f'},
     {location: 'resolution', type: 'uniform2fv'}
   ]
@@ -58,7 +62,8 @@ export default {
       // texSrcs: [img, img],
       // textures: [],
       index: [0, 2, 1, 1, 2, 3],
-      fBuffer: null
+      fBuffers: [],
+      loopCount: 0
     }
   },
   async mounted () {
@@ -90,41 +95,63 @@ export default {
         1.0, -1.0, 0.0
       ]
       this.color1 = [
-        0.0, 0.0, 0.0, 1.0
+        0.1, 0.1, 0.1, 1.0
       ]
       // 頂点座標の配列から VBO（Vertex Buffer Object）を生成する
       this.VBO = this.glsl.createVbos([this.position1, this.color1])
       this.VBO2 = this.glsl.createVbos([this.position2])
       this.IBO = this.glsl.createIbo(this.index)
-      this.fBuffer = this.glsl.createFramebuffer(this.canvasWidth, this.canvasHeight)
-      this.gl.bindTexture(this.gl.TEXTURE_2D, this.fBuffer.texture)
+      this.fBuffers = [
+        this.glsl.createFramebuffer(this.canvasWidth, this.canvasHeight),
+        // this.glsl.createFramebuffer(this.canvasWidth, this.canvasHeight),
+        // this.glsl.createFramebuffer(this.canvasWidth, this.canvasHeight),
+        this.glsl.createFramebuffer(this.canvasWidth, this.canvasHeight)
+      ]
+      // let imgTex = await this.glsl.createTexture(img)
+      // this.gl.bindTexture(this.gl.TEXTURE_2D, this.fBuffer.texture)
+      this.glsl.setTextures([
+        // imgTex,
+        this.fBuffers[0].texture,
+        this.fBuffers[1].texture
+        // this.fBuffers[2].texture,
+        // this.fBuffers[3].texture
+      ])
       // this.scenePrg1.setAtt(this.VBO, this.IBO)
 
-      // this.gl.clearColor(0.7, 0.7, 1.0, 1.0)
-      this.gl.clearColor(0.804950, 0.851518, 0.907907, 1.0)
+      this.gl.clearColor(0.7, 0.7, 1.0, 1.0)
+      // this.gl.clearColor(1.0, 1.0, 1.0, 1.0)
+      // this.gl.clearColor(0.804950, 0.851518, 0.907907, 1.0)
       this.gl.clearDepth(1.0) // クリアする深度
       this.gl.enable(this.gl.DEPTH_TEST) // 深度テストを有効化
       this.startTime = Date.now()
       this.nowTime = 0
       this.run = true
+      this.loopCount = 0
 
       this.render()
     },
     render () {
+      ++this.loopCount
+      let targetBufferIndex = this.loopCount % 2
+      let prevBufferIndex = 1 - targetBufferIndex
+
       // setting
+      this.gl.disable(this.gl.BLEND)
       this.nowTime = (Date.now() - this.startTime) / 1000
       this.refreshCanvas()
 
       // save & clear
-      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.fBuffer.framebuffer)
+      this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.fBuffers[targetBufferIndex].framebuffer)
       this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
 
       // 1
       this.gl.useProgram(this.scenePrg1.program)
       this.scenePrg1.setAttribute(this.VBO, this.IBO)
-      this.scenePrg1.setUniLocation('texture', 0)
-      this.scenePrg1.setUniLocation('time', this.nowTime)
+      // this.gl.activeTexture(this.gl.TEXTURE0)
+      this.scenePrg1.setUniLocation('backbuffer', prevBufferIndex)
+      this.scenePrg1.setUniLocation('texture', targetBufferIndex)
       this.scenePrg1.setUniLocation('mouse', this.mouse)
+      this.scenePrg1.setUniLocation('time', this.nowTime)
       this.scenePrg1.setUniLocation('resolution', [this.canvasWidth, this.canvasHeight])
       // this.gl.drawElements(this.gl.TRIANGLES, this.index.length, this.gl.UNSIGNED_SHORT, 0)
       this.gl.drawArrays(this.gl.POINTS, 0, this.position1.length / 3)
@@ -136,7 +163,11 @@ export default {
       // 2
       this.gl.useProgram(this.scenePrg2.program)
       this.scenePrg2.setAttribute(this.VBO2, this.IBO)
-      this.scenePrg2.setUniLocation('texture', 0)
+      this.scenePrg2.setUniLocation('backbuffer', prevBufferIndex)
+      this.scenePrg2.setUniLocation('texture', targetBufferIndex)
+      // this.scenePrg2.setUniLocation('backbuffer', targetBufferIndex)
+      // this.scenePrg2.setUniLocation('texture', prevBufferIndex)
+      this.scenePrg2.setUniLocation('mouse', this.mouse)
       this.scenePrg2.setUniLocation('time', this.nowTime)
       this.scenePrg2.setUniLocation('resolution', [this.canvasWidth, this.canvasHeight])
       this.gl.drawElements(this.gl.TRIANGLES, this.index.length, this.gl.UNSIGNED_SHORT, 0)

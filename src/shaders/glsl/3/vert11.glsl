@@ -13,8 +13,13 @@ void main(){
     gl_Position = vec4(position + v, 1.0);
 
     vColor = color;
-    gl_PointSize = 10. + rnd(mouse + mod(time, 10.0))* 10.0;
+//    gl_PointSize = 10. + rnd(mouse + mod(time, 10.0))* 10.0;
+    gl_PointSize = 28.0;
 //    gl_Position = mvpMatrix * vec4(position, 1.0);
 //    gl_Position = vec4(position, 1.0);
 //    vTexCoord = (position.xy + 1.0) * 0.5;
+//    gl_Position = vec4(position, 1.0);
+//    vTexCoord = (position.xy + 1.0) * 0.5;
+
+//    vColor = color;
 }

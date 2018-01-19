@@ -1,7 +1,9 @@
 precision mediump float;
+uniform sampler2D backbuffer;
 uniform sampler2D texture;    // フレームバッファに描画したレンダリング結果
+uniform vec2 mouse;
 uniform float     time;       // 時間の経過
-uniform vec2      resolution; // スクリーン解像度 @@@
+uniform vec2      resolution; // スクリーン解像度
 varying vec2      vTexCoord;  // テクスチャ座標
 
 const   vec4      greenColor = vec4(0.2, 1.0, 0.5, 1.0);
@@ -17,13 +19,14 @@ float rnd(vec2 n){
 }
 
 void main(){
-    // **そのまま描写
-    // フレームバッファの描画結果をテクスチャから読み出す
-    vec4 samplerColor = texture2D(texture, vTexCoord);
-    gl_FragColor = samplerColor;
+//    // **そのまま描写
+//    // フレームバッファの描画結果をテクスチャから読み出す
+//    vec4 samplerColor = texture2D(texture, vTexCoord);
+//    vec4 backColor = texture2D(backbuffer, vTexCoord);
+//    gl_FragColor = samplerColor;
+////    gl_FragColor = samplerColor + backColor;
 
-
-    // **scanline
+//    // **scanline
 //    // スクリーン上の座標（0.0 ~ resolution）を正規化（-1.0 ~ 1.0）する @@@
 //    vec2 p = (gl_FragCoord.st / resolution) * 2.0 - 1.0;
 //
@@ -50,26 +53,42 @@ void main(){
 
 
 // **test
-//  vec2 position = ( gl_FragCoord.xy / resolution.xy );
-//	vec2 pixel = 1./resolution;
-//
-//	float tau = 6.28318;
-//  vec4 sum = texture2D(texture, vTexCoord)*-1.;
-//  sum += 2.*texture2D(texture, position + pixel * vec2(-1., 0.));
-//  sum += 2.*texture2D(texture, position + pixel * vec2(1., 0.));
-//  sum += 2.*texture2D(texture, position + pixel * vec2(0., -1.));
-//  sum += 2.*texture2D(texture, position + pixel * vec2(0., 1.));
-//
-//  sum += texture2D(texture, position + pixel * vec2(-1., -1.));
-//  sum += texture2D(texture, position + pixel * vec2(-1., 1.));
-//  sum += texture2D(texture, position + pixel * vec2(1., -1.));
-//  sum += texture2D(texture, position + pixel * vec2(1., 1.));
-//  sum /= 12.;
-//  vec4 me = texture2D(texture, position);
-//
-//  float r, g, b = 0.;
-//  r = sum.r;
-//  g = sum.g * (1.4 - .1 * me.g) - .4 * me.b;
-//  b = sum.b * .9 + .1 * me.g; //  me.b * (1. - me.b);
-//  gl_FragColor = greenColor * vec4(.98*r, g, b, 1.);
+  vec2 position = ( gl_FragCoord.xy / resolution.xy );
+	vec2 pixel = 1./resolution;
+
+  bool done = false;
+	float tau = 6.28318;
+  vec2 center = vec2(.5, .5);
+	float r = length(mouse - center);
+  float th = atan(mouse.y - center.y, mouse.x - center.x);
+  for (float k = 0.; k < 6.; ++k) {
+    vec2 relative = position - (center + r * vec2(cos(th + tau*k/6.), sin(th + tau*k/6.)));
+    if (length(relative) > 0.035 && length(relative) < 0.04) {
+      gl_FragColor = live;
+      done = true;
+    }
+  }
+  if (!done) {
+    vec4 sum = dead;
+//    vec4 sum = texture2D(texture, vTexCoord)*-1.;
+    sum += 2.*texture2D(backbuffer, position + pixel * vec2(-10., 0.));
+    sum += 2.*texture2D(backbuffer, position + pixel * vec2(10., 0.));
+    sum += 2.*texture2D(backbuffer, position + pixel * vec2(0., -10.));
+    sum += 2.*texture2D(backbuffer, position + pixel * vec2(0., 10.));
+
+    sum += texture2D(backbuffer, position + pixel * vec2(-10., -10.));
+    sum += texture2D(backbuffer, position + pixel * vec2(-10., 10.));
+    sum += texture2D(backbuffer, position + pixel * vec2(10., -10.));
+    sum += texture2D(backbuffer, position + pixel * vec2(10., 10.));
+    sum /= 12.;
+    vec4 me = texture2D(backbuffer, position);
+
+    float r, g, b = 0.;
+    r = sum.r;
+    g = sum.g * (1.4 - .1 * me.g) - .4 * me.b;
+    b = sum.b * .9 + .1 * me.g; //  me.b * (1. - me.b);
+    gl_FragColor = vec4(.98*r, g, b, 1.);
+  }
+//    vec4 samplerColor = texture2D(backbuffer, position);
+//    gl_FragColor = samplerColor;
 }
