@@ -72,10 +72,9 @@ export default {
   },
   async mounted () {
     this.cvs = this.$refs.canvas
-    // this.gl = this.cvs.getContext('experimental-webgl')
-    this.gl = this.cvs.getContext('webgl')
-    if (!this.gl) return
-    this.glsl = new GLSL(this.gl)
+    this.glsl = new GLSL(this.cvs)
+    if (!this.glsl.gl) return
+    this.gl = this.glsl.gl
     this.ext = this.glsl.getWebGLExtensions()
     this.mat = new MatIV()
     this.qtn = new QtnIV()
@@ -89,7 +88,7 @@ export default {
     let prg2 = this.glsl.buildProgram(postVert, postFlag)
     this.scenePrg = new ProgramParameter(prg1, this.glsl)
     this.scenePrg2 = new ProgramParameter(prg2, this.glsl)
-    if (!this.scenePrg && !this.scenePrg2) return
+    if (!this.scenePrg || !this.scenePrg2) return
     this.init()
   },
   methods: {
@@ -113,13 +112,8 @@ export default {
         1.0, 1.0, 1.0, 1.0
       ]
       // 頂点座標の配列から VBO（Vertex Buffer Object）を生成する
-      this.VBO = [
-        this.glsl.createVbo(this.position),
-        this.glsl.createVbo(this.color)
-      ]
-      this.VBO2 = [
-        this.glsl.createVbo(this.position)
-      ]
+      this.VBO = this.glsl.createVbos([this.position, this.color])
+      this.VBO2 = this.glsl.createVbos([this.position])
       this.IBO = this.glsl.createIbo(this.index)
       // フレームバッファの生成
       this.fBuffer = this.glsl.createFramebuffer(this.canvasWidth, this.canvasHeight)
@@ -148,10 +142,8 @@ export default {
       this.nowTime = (Date.now() - this.startTime) / 1000
       this.refreshCanvas()
 
+      // save & clear
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, this.fBuffer.framebuffer)
-      // 1
-      this.gl.useProgram(this.scenePrg.program)
-      this.gl.viewport(0, 0, this.canvasWidth, this.canvasHeight)
       this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
 
       // cam
@@ -162,8 +154,6 @@ export default {
       let aspect = this.canvasWidth / this.canvasHeight
       let near = 0.1
       let far = 10.0
-
-      // ビュー・プロジェクション座標変換行列
       this.mat.lookAt(cameraPosition, centerPoint, cameraUpDirection, this.vMatrix)
       this.mat.perspective(fovy, aspect, near, far, this.pMatrix)
       this.mat.multiply(this.pMatrix, this.vMatrix, this.vpMatrix)
@@ -172,19 +162,22 @@ export default {
       this.qtn.toMatIV(this.camera.qtn, this.qtnMatrix)
       this.mat.multiply(this.vpMatrix, this.qtnMatrix, this.vpMatrix)
 
-      this.scenePrg.setAtt(this.VBO, this.IBO)
+      // 1
+      this.gl.useProgram(this.scenePrg.program)
+      this.scenePrg.setAttribute(this.VBO, this.IBO)
       this.mat.identity(this.mMatrix)
       this.mat.rotate(this.mMatrix, this.nowTime * 0.1, [0.0, 1.0, 0.0], this.mMatrix)
       this.mat.multiply(this.vpMatrix, this.mMatrix, this.mvpMatrix)
       this.scenePrg.setUniLocation('mvpMatrix', false, this.mvpMatrix)
       this.gl.drawElements(this.gl.TRIANGLES, this.index.length, this.gl.UNSIGNED_SHORT, 0)
 
+      // save & clear
       this.gl.bindFramebuffer(this.gl.FRAMEBUFFER, null)
-      // 2
-      this.gl.useProgram(this.scenePrg2.program)
       this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT)
 
-      this.scenePrg2.setAtt(this.VBO2, this.IBO)
+      // 2
+      this.gl.useProgram(this.scenePrg2.program)
+      this.scenePrg2.setAttribute(this.VBO2, this.IBO)
       this.scenePrg2.setUniLocation('texture', 0)
       this.scenePrg2.setUniLocation('time', this.nowTime)
       this.scenePrg2.setUniLocation('resolution', [this.canvasWidth, this.canvasHeight])
@@ -201,6 +194,7 @@ export default {
       this.cvs.width = this.canvasWidth
       this.cvs.height = this.canvasHeight
       // canvas のサイズとビューポートの大きさを揃える
+      this.gl.viewport(0, 0, this.canvasWidth, this.canvasHeight)
     }
     // mouseMove (eve) {
     //   // client 座標を正規化して -1.0 ～ 1.0 の範囲に変換する

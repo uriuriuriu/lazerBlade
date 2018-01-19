@@ -16,8 +16,8 @@ const _createProgram = function (gl, vs, fs) {
 }
 
 export class GLSL {
-  constructor (gl) {
-    this.gl = gl
+  constructor (canvas) {
+    this.gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
   }
   createShader (source, type) {
     let shader = this.gl.createShader(type)
@@ -91,6 +91,13 @@ export class GLSL {
     this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(data), this.gl.STATIC_DRAW)
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null)
     return vbo
+  }
+  createVbos (datas) {
+    let vbos = []
+    datas.forEach((data, index) => {
+      vbos.push(this.createVbo(data))
+    })
+    return vbos
   }
   createIbo (data) {
     let ibo = this.gl.createBuffer()
@@ -181,8 +188,12 @@ export class ProgramParameter {
       this.gl[this.uniType[this.uniIndex[location]]](this.uniLocation[this.uniIndex[location]], val)
     }
   }
-  setAtt (VBO, IBO) {
-    this.glsl.setAttribute(VBO, this.attLocation, this.attStride, IBO)
+  setAttribute (VBO, IBO = null) {
+    if (IBO) {
+      this.glsl.setAttribute(VBO, this.attLocation, this.attStride, IBO)
+    } else {
+      this.glsl.setAttribute(VBO, this.attLocation, this.attStride)
+    }
   }
 }
 
