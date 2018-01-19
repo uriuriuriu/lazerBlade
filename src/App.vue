@@ -1,6 +1,6 @@
 <template lang="pug">
   el-container#app
-    GLSL2(:mouse="mouse")
+    GLSL3(:mouse="mouse")
     el-header
       HeaderNav
     el-main
@@ -11,7 +11,7 @@
 <script>
 import store from 'src/vuex/store'
 import HeaderNav from 'src/components/HeaderNav'
-import GLSL2 from 'src/components/shaders/GLSL2'
+import GLSL3 from 'src/components/shaders/GLSL3'
 import { mapActions } from 'vuex'
 
 export default {
@@ -23,7 +23,7 @@ export default {
     }
   },
   components: {
-    HeaderNav, GLSL2
+    HeaderNav, GLSL3
   },
   watch: {
     '$route': 'routeChange'
