@@ -11,7 +11,7 @@
 <script>
 import store from 'src/vuex/store'
 import HeaderNav from 'src/components/HeaderNav'
-import GLSL2 from 'src/components/GLSL2'
+import GLSL2 from 'src/components/shaders/GLSL2'
 import { mapActions } from 'vuex'
 
 export default {
