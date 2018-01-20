@@ -16,8 +16,8 @@ const _createProgram = function (gl, vs, fs) {
 }
 
 export class GLSL {
-  constructor (gl) {
-    this.gl = gl
+  constructor (canvas) {
+    this.gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl')
   }
   createShader (source, type) {
     let shader = this.gl.createShader(type)
@@ -91,6 +91,13 @@ export class GLSL {
     this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(data), this.gl.STATIC_DRAW)
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, null)
     return vbo
+  }
+  createVbos (datas) {
+    let vbos = []
+    datas.forEach((data, index) => {
+      vbos.push(this.createVbo(data))
+    })
+    return vbos
   }
   createIbo (data) {
     let ibo = this.gl.createBuffer()
@@ -174,14 +181,76 @@ export class ProgramParameter {
       this.uniType[index] = un.type
     })
   }
-  setUniLocation (location, val) {
-    this.gl[this.uniType[this.uniIndex[location]]](this.uniLocation[this.uniIndex[location]], val)
+  setUniLocation (location, val, val2 = null) {
+    if (val2) {
+      this.gl[this.uniType[this.uniIndex[location]]](this.uniLocation[this.uniIndex[location]], val, val2)
+    } else {
+      this.gl[this.uniType[this.uniIndex[location]]](this.uniLocation[this.uniIndex[location]], val)
+    }
   }
-  setAtt (VBO, IBO) {
-    this.glsl.setAttribute(VBO, this.attLocation, this.attStride, IBO)
+  setAttribute (VBO, IBO = null) {
+    if (IBO) {
+      this.glsl.setAttribute(VBO, this.attLocation, this.attStride, IBO)
+    } else {
+      this.glsl.setAttribute(VBO, this.attLocation, this.attStride)
+    }
   }
 }
 
+export class InteractionCamera {
+  constructor (qtn) {
+    this.qtn = qtn.identity(qtn.create())
+    this.dragging = false
+    this.prevMouse = [0, 0]
+    this.rotationScale = Math.min(window.innerWidth, window.innerHeight)
+    this.rotation = 0.0
+    this.rotateAxis = [0.0, 0.0, 0.0]
+    this.rotatePower = 1.5
+    this.rotateAttenuation = 0.9
+    this.scale = 1.0
+    this.scalePower = 0.0
+    this.scaleAttenuation = 0.8
+    this.scaleMin = 0.5
+    this.scaleMax = 1.5
+    this.startEvent = this.startEvent.bind(this)
+    this.moveEvent = this.moveEvent.bind(this)
+    this.endEvent = this.endEvent.bind(this)
+    this.wheelEvent = this.wheelEvent.bind(this)
+  }
+  startEvent (eve) {
+    this.dragging = true
+    this.prevMouse = [eve.clientX, eve.clientY]
+  }
+  moveEvent (eve) {
+    if (this.dragging !== true) { return }
+    let x = this.prevMouse[0] - eve.clientX
+    let y = this.prevMouse[1] - eve.clientY
+    this.rotation = Math.sqrt(x * x + y * y) / this.rotationScale * this.rotatePower
+    this.rotateAxis[0] = y
+    this.rotateAxis[1] = x
+    this.prevMouse = [eve.clientX, eve.clientY]
+  }
+  endEvent () {
+    this.dragging = false
+  }
+  wheelEvent (eve) {
+    let w = eve.wheelDelta
+    if (w > 0) {
+      this.scalePower = -0.05
+    } else if (w < 0) {
+      this.scalePower = 0.05
+    }
+  }
+  update () {
+    this.scalePower *= this.scaleAttenuation
+    this.scale = Math.max(this.scaleMin, Math.min(this.scaleMax, this.scale + this.scalePower))
+    if (this.rotation === 0.0) { return }
+    this.rotation *= this.rotateAttenuation
+    let q = this.qtn.identity(this.qtn.create())
+    this.qtn.rotate(this.rotation, this.rotateAxis, q)
+    this.qtn.multiply(this.qtn, q, this.qtn)
+  }
+}
 // export default {
 //   install (Vue, options) {
 //     Vue.prototype.glsl = glsl
