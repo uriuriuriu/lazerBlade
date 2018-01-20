@@ -3,10 +3,10 @@
 </template>
 
 <script>
-import testFlag from 'src/shaders/glsl/scene_frag.glsl'
-import testVert from 'src/shaders/glsl/scene_vert.glsl'
-import postFlag from 'src/shaders/glsl/post2_frag.glsl'
-import postVert from 'src/shaders/glsl/post2_vert.glsl'
+import testFlag from 'src/shaders/glsl/2/scene_frag.glsl'
+import testVert from 'src/shaders/glsl/2/scene_vert.glsl'
+import postFlag from 'src/shaders/glsl/2/post2_frag.glsl'
+import postVert from 'src/shaders/glsl/2/post2_vert.glsl'
 import { MatIV, QtnIV } from 'src/shaders/minMatrix'
 // import { MatIV, QtnIV, torus, sphere, cube, hsva } from 'src/plugins/minMatrix'
 // import img from 'src/assets/lenna.jpg'
@@ -207,7 +207,7 @@ export default {
     ...mapGetters([ 'pageTitle', 'loadingCount', 'loadingSets' ])
   },
   beforeDestroy () {
-    this.clear()
+    // this.clear()
     // window.removeEventListener('mousemove', this.mouseMove)
     this.stage = null
   }

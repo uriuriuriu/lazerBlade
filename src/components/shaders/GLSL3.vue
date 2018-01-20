@@ -187,7 +187,7 @@ export default {
     }
   },
   beforeDestroy () {
-    this.clear()
+    // this.clear()
     this.stage = null
   }
 }

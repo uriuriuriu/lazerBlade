@@ -123,7 +123,7 @@
       ...mapGetters([ 'pageTitle', 'loadingCount', 'loadingSets' ])
     },
     beforeDestroy () {
-      this.clear()
+      // this.clear()
       // window.removeEventListener('mousemove', this.mouseMove)
       this.stage = null
     }
