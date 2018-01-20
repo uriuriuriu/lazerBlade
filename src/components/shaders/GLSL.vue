@@ -3,8 +3,8 @@
 </template>
 
 <script>
-import testFlag from 'src/shaders/glsl/test_flag.glsl'
-import testVert from 'src/shaders/glsl/test_vert.glsl'
+import testFlag from 'src/shaders/glsl/0/test_flag.glsl'
+import testVert from 'src/shaders/glsl/0/test_vert.glsl'
 import { GLSL, ProgramParameter } from 'src/shaders/index'
 import { mapGetters } from 'vuex'
 
@@ -104,7 +104,7 @@ export default {
     ...mapGetters([ 'pageTitle', 'loadingCount', 'loadingSets' ])
   },
   beforeDestroy () {
-    this.clear()
+    // this.clear()
     // window.removeEventListener('mousemove', this.mouseMove)
     this.stage = null
   }

@@ -16,5 +16,5 @@ void main(){
 //     gl_Position = vec4(position * f, 1.0);
 
     // 頂点の大きさは頂点シェーダで設定する
-    gl_PointSize = 8.0;
+    gl_PointSize = 28.0;
 }

@@ -1,17 +1,26 @@
 <template lang="pug">
   el-container#app
-    GLSL1(:mouse="mouse")
+    component(:is="compName", :mouse="mouse")
+    <!--GLSL1(:mouse="mouse")-->
     el-header
       HeaderNav
     el-main
       transition(name="slide-fade", mode="out-in")
         router-view
+    el-footer
+      el-radio-group(v-model="compName", size="mini")
+        el-radio-button(:label="comp.name" v-for="(comp, index) in compNameList")
+      p._small_p
+        a(href='https://github.com/uriuriuriu/lazerBlade', target="_balnk") this github
 </template>
 
 <script>
 import store from 'src/vuex/store'
 import HeaderNav from 'src/components/HeaderNav'
+import GLSL from 'src/components/shaders/GLSL'
 import GLSL1 from 'src/components/shaders/GLSL1'
+import GLSL2 from 'src/components/shaders/GLSL2'
+import GLSL3 from 'src/components/shaders/GLSL3'
 import { mapActions } from 'vuex'
 
 export default {
@@ -19,11 +28,14 @@ export default {
   store,
   data () {
     return {
-      mouse: [0.0, 0.0]
+      mouse: [0.0, 0.0],
+      compName: 'GLSL1',
+      compNameList: [
+        {name: 'GLSL'}, {name: 'GLSL1'}, {name: 'GLSL2'}, {name: 'GLSL3'}]
     }
   },
   components: {
-    HeaderNav, GLSL1
+    HeaderNav, GLSL, GLSL1, GLSL2, GLSL3
   },
   watch: {
     '$route': 'routeChange'
@@ -61,4 +73,8 @@ export default {
 
 <style lang="sass">
   @import global
+  ._small_p
+    height: 10px
+    padding: 0
+    margin: 3px 0 0 0
 </style>

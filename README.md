@@ -1,6 +1,7 @@
 # lazerBlade
 
-Vue.js GLSL project
+Vue.js GLSL project  
+demo: https://uriuriuriu.github.io/lazerBlade/
 
 ## TODO
 
@@ -14,6 +15,7 @@ Vue.js GLSL project
 - [x] npm upgrade (2018/01/16)
 - [x] Element UI
 - [x] GLSL
+- [ ] GLSL sample
 
 ## Build Setup
 
