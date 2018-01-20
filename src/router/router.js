@@ -1,6 +1,7 @@
 import VueRouter from 'vue-router'
 import Vue from 'vue'
 import Index from 'src/pages/Index'
+import ScrollPage from 'src/pages/ScrollPage'
 import About from 'src/pages/About'
 
 Vue.use(VueRouter)
@@ -9,6 +10,10 @@ const routes = [{
   path: '/',
   name: 'index',
   component: Index
+}, {
+  path: '/scrollPage',
+  name: 'scrollPage',
+  component: ScrollPage
 }, {
   path: '/about',
   name: 'about',

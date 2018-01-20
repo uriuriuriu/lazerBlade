@@ -1,6 +1,7 @@
 <template lang="pug">
   el-menu(:default-active="$route.path", :router="true", mode="horizontal", @select="handleSelect")
     el-menu-item(index="/") Home
+    el-menu-item(index="/scrollPage") scrollPage
     el-menu-item(index="/about") About
     // el-submenu(index="2")
       template(slot="title") Workspace

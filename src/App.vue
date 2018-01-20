@@ -1,13 +1,13 @@
 <template lang="pug">
   el-container#app
     component(:is="compName", :mouse="mouse")
-    <!--GLSL1(:mouse="mouse")-->
-    el-header
+    // GLSL1(:mouse="mouse")
+    el-header._fix_head
       HeaderNav
-    el-main
+    el-main._main
       transition(name="slide-fade", mode="out-in")
         router-view
-    el-footer
+    el-footer._fix_footer
       el-radio-group(v-model="compName", size="mini")
         el-radio-button(:label="comp.name" v-for="(comp, index) in compNameList")
       p._small_p
@@ -77,4 +77,16 @@ export default {
     height: 10px
     padding: 0
     margin: 3px 0 0 0
+  ._fix_head
+    position: fixed
+    width: 100vw
+    top: 0
+    z-index: 100
+  ._main
+    padding: 100px 0
+  ._fix_footer
+    position: fixed
+    width: 100vw
+    bottom: 0
+    z-index: 100
 </style>
